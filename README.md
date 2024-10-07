@@ -59,4 +59,3 @@ Several analyses examining the contacts list altogether can also be prepared for
 ```
 pip install -r requirments.txt
 ```
-
