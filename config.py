@@ -5,7 +5,7 @@ if sys.platform == 'darwin':
     target_dir = f'{input_dir}/output'
 else:
     input_dir = r'C:/Users/Liat Sayfan/Documents/CJP Contact Lists'
-    target_dir = r'C:/Users/Liat Sayfan/Documents/CJP Contact Lists/output'
+    target_dir = input_dir + '/output'
 
 
 org_names_file = f'{target_dir}/org_names.txt'
@@ -21,5 +21,6 @@ col_list = [
     'Email Address',
     'Cell Phone Number']
 
-# Using middle dot (alt-shift-9 on Mac, alt-0183 on Windows) as a separator
+# Using middle dot (alt-shift-9 on Mac, Num Lock on + alt-0183 on Windows - use numeric keypad)
+# as a separator
 key_separator = '·'

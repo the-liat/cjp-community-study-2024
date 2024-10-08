@@ -176,7 +176,7 @@ def main():
     # merge_files()
     # generate_output_file()
     # find_suspected_duplicates()
-    # update_org_count_per_person()
+    update_org_count_per_person()
     # update_zip_code()
 
 
