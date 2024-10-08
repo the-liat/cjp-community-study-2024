@@ -6,6 +6,7 @@ from collections import defaultdict
 from glob import glob
 from pprint import pprint as pp
 import pandas as pd
+import usaddress
 from config import (
     col_list,
     input_dir,
@@ -75,14 +76,14 @@ def generate_output_file():
     """
     all_people = json.load(open(all_people_json))
     valid_orgs = open(org_names_file).read().split('\n')
-    cols = col_list + valid_orgs
+    cols = col_list + valid_orgs + ['Total Orgs']
     df = pd.DataFrame(columns=cols)
     total_people = len(all_people)
     for i, (k, v) in enumerate(all_people.items(), start=1):
         if i % 10000 == 0:
             curr_time = datetime.now().strftime('%H:%M')
             print(f"[{curr_time}] {i:,} / {total_people:,}, {i * 100 / total_people:.2f}% complete")
-        row = k.split(key_separator) + [1 if org in v else 0 for org in valid_orgs]
+        row = k.split(key_separator) + [1 if org in v else 0 for org in valid_orgs] + [len(v)]
         try:
             df.loc[len(df)] = row
         except Exception as e:
@@ -140,6 +141,33 @@ def find_suspected_duplicates():
     json.dump(all_duplicates, open(duplicates_json, 'w'), indent=2)
 
 
+def update_org_count_per_person():
+    all_people = pd.read_csv(all_people_csv)
+    all_people['Total Orgs'] = all_people[all_people.columns[5:]].sum(axis=1)
+    all_people.to_csv(all_people_csv, index=False)
+
+
+def update_zip_code():
+    def extract_zip_code(address):
+        try:
+            parsed_address = usaddress.tag(address)
+            components = parsed_address[0]
+            return components.get('ZipCode', '')  # Return ZIP code if found
+        except usaddress.RepeatedLabelError:
+            return ''
+
+    all_people = pd.read_csv(all_people_csv, nrows=5).astype(str)
+    all_people['Zip Code'] = all_people['Physical Address'].apply(extract_zip_code)
+
+    cols = list(all_people.columns)
+    physical_address_index = cols.index('Physical Address')
+
+    cols = cols[:physical_address_index + 1] + ['Zip Code'] + cols[physical_address_index + 2:-1]
+    all_people = all_people[cols]
+
+    all_people.to_csv(all_people_csv, index=False)
+
+
 def main():
     """ """
     # convert_files()
@@ -147,7 +175,9 @@ def main():
     # list_org_columns()
     # merge_files()
     # generate_output_file()
-    find_suspected_duplicates()
+    # find_suspected_duplicates()
+    # update_org_count_per_person()
+    # update_zip_code()
 
 
 if __name__ == "__main__":
