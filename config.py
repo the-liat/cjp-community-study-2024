@@ -8,11 +8,21 @@ else:
     target_dir = input_dir + '/output'
 
 
-org_names_file = f'{target_dir}/org_names.txt'
-valid_orgs_file = f'{target_dir}/valid_orgs.txt'
-all_people_json = f'{target_dir}/all_people.json'
-all_people_csv = f'{target_dir}/all_people.csv'
-duplicates_json = f'{target_dir}/duplicates.json'
+org_names_file = target_dir + '/org_names.txt'
+valid_orgs_file = target_dir + '/valid_orgs.txt'
+all_people_json = target_dir + '/all_people.json'
+all_people_csv = target_dir + '/all_people.csv'
+duplicates_json = target_dir + '/duplicates.json'
+merge_candidates_json = target_dir + '/merge_candidates.json'
+
+dtype_dict = {
+    'First Name': str,
+    'Last Name': str,
+    'Physical Address': str,
+    'Email Address': str,
+    'Cell Phone Number': str,
+    'Zip Code': str
+}
 
 col_list = [
     'First Name',

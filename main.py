@@ -16,7 +16,8 @@ from config import (
     all_people_json,
     all_people_csv,
     duplicates_json,
-    key_separator
+    key_separator,
+    merge_candidates_json, dtype_dict
 )
 
 
@@ -90,6 +91,12 @@ def generate_output_file():
             print(row)
             raise
 
+    # Clean up the phone numbers and emails
+    phones = df['Cell Phone Number'].str.replace(r'[-() ]', '', regex=True).str.replace('nan', '')
+    emails = df['Email Address'].str.replace('nan', '')
+    df['Cell Phone Number'] = phones
+    df['Email Address'] = emails
+
     df.to_csv(all_people_csv, index=False)
 
 
@@ -152,8 +159,8 @@ def update_zip_code():
         try:
             parsed_address = usaddress.tag(str(address))
             components = parsed_address[0]
-            zip_code = components.get('ZipCode', '').replace('nan', '').split('-')[0].strip()
-            return f'{zip_code:0>5}'
+            zip_code = components.get('ZipCode', '').split('-')[0].strip()
+            return zip_code.zfill(5) if zip_code else ''
         except usaddress.RepeatedLabelError:
             return ''
 
@@ -164,31 +171,91 @@ def update_zip_code():
     cols = list(all_people.columns)
     physical_address_index = cols.index('Physical Address')
 
-    cols = cols[:physical_address_index + 1] + ['Zip Code'] + cols[physical_address_index + 2:-1]
+    cols = cols[:physical_address_index + 1] + ['Zip Code'] + cols[physical_address_index + 1:-1]
     all_people = all_people[cols]
 
     all_people.to_csv(all_people_csv, index=False)
 
 
+def clean_phone_numbers():
+    all_people = read_all_people_file()
+    phone_numbers = (all_people['Cell Phone Number']
+                     .astype(str)
+                     .str.replace(r'[-() ]', '', regex=True)
+                     .str.replace('nan', ''))
+    all_people['Cell Phone Number'] = phone_numbers
+    all_people.to_csv(all_people_csv, index=False)
+
+
+def clean_nans(cols):
+    all_people = read_all_people_file()
+    for col in cols:
+        values = all_people[col].astype(str).str.replace('nan', '')
+        all_people[col] = values
+    all_people.to_csv(all_people_csv, index=False)
+
+
 def read_all_people_file():
-    dtype_dict = {
-        'First Name': str,
-        'Last Name': str,
-        'Physical Address': str,
-        'Email Address': str,
-        'Cell Phone Number': str,
-        'Zip Code': str
-    }
-    df = pd.read_csv(all_people_csv, dtype=dtype_dict)
+    df = pd.read_csv(all_people_csv, dtype=dtype_dict, low_memory=False).astype(str)
     return df
 
-    # Display the result
-    print(df.dtypes)
 
-# clean zip codes
-# df['Zip Code'] = df['Zip Code'].str.zfill(5).replace('00000', '')
-# clean phone numbers
-# df['Cell Phone Number'] = df['Cell Phone Number'].str.replace(r'[-() ]', '', regex=True)
+def merge_candidates():
+    """ """
+    def read_field(name):
+        return row[name].strip().lower().replace('nan', '')
+
+    d = dict(people_without_full_name_and_email=defaultdict(list),
+             people_with_full_name_and_address=defaultdict(list),
+             people_with_full_name_and_cell_phone=defaultdict(list))
+
+    all_people = read_all_people_file()
+    # output = pd.DataFrame(columns=all_people.columns)
+
+    total_people = len(all_people)
+    for i, row in all_people.iterrows():
+        if i % 10000 == 0:
+            curr_time = datetime.now().strftime('%H:%M')
+            print(f"[{curr_time}] {i:,} / {total_people:,}, {i * 100 / total_people:.2f}% complete")
+
+        first_name = read_field('First Name')
+        last_name = read_field('Last Name')
+        email = read_field('Email Address')
+        address = read_field('Physical Address')
+        cell_phone = read_field('Cell Phone Number')
+
+        # If a person has a full name and email just add them to the output
+        if first_name and last_name and email:
+            # output.loc[len(output)] = row
+            continue
+        # If the first name and email are not empty, add the person to the dictionary
+        if email:
+            d['people_without_full_name_and_email'][f'{first_name}, {email}'].append(list(row))
+
+        # If the full name and address are not empty, add the person to the dictionary
+        if first_name and last_name and address:
+            d['people_with_full_name_and_address'][
+                f'{first_name}, {last_name}, {address}'].append(list(row))
+            # If the full name and cell phone are not empty, add the person to the dictionary
+        elif first_name and last_name and cell_phone:
+            d['people_with_full_name_and_cell_phone'][
+                f'{first_name}, {last_name}, {cell_phone}'].append(list(row))
+
+    # Remove people that appear only once in any dictionary
+    for k, v in d.items():
+        d[k] = {kk: vv for kk, vv in v.items() if len(vv) > 1}
+
+    # Print stats
+    # print('People with duplicates (already in output df:', len(output))
+    print('People without full name and email:',
+          len(d['people_without_full_name_and_email']))
+    print('People with full name and address:', len(d['people_with_full_name_and_address']))
+    print('People with full name and cell phone:',
+          len(d['people_with_full_name_and_cell_phone']))
+
+    # Save the dictionaries to a JSON file
+    json.dump(d, open(merge_candidates_json, 'w'), indent=2)
+
 
 def main():
     """ """
@@ -199,7 +266,11 @@ def main():
     # generate_output_file()
     # find_suspected_duplicates()
     # update_org_count_per_person()
-    update_zip_code()
+    # update_zip_code()
+    # clean_phone_numbers()
+    # clean_nans([
+    #    'First Name', 'Last Name', 'Physical Address', 'Email Address'])
+    merge_candidates()
 
 
 if __name__ == "__main__":
