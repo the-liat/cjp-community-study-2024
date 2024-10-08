@@ -150,14 +150,16 @@ def update_org_count_per_person():
 def update_zip_code():
     def extract_zip_code(address):
         try:
-            parsed_address = usaddress.tag(address)
+            parsed_address = usaddress.tag(str(address))
             components = parsed_address[0]
-            return components.get('ZipCode', '')  # Return ZIP code if found
+            zip_code = components.get('ZipCode', '').replace('nan', '').split('-')[0].strip()
+            return f'{zip_code:0>5}'
         except usaddress.RepeatedLabelError:
             return ''
 
-    all_people = pd.read_csv(all_people_csv, nrows=5).astype(str)
-    all_people['Zip Code'] = all_people['Physical Address'].apply(extract_zip_code)
+    all_people = read_all_people_file()
+    zip_code = all_people['Physical Address'].apply(extract_zip_code).astype(str)
+    all_people['Zip Code'] = zip_code
 
     cols = list(all_people.columns)
     physical_address_index = cols.index('Physical Address')
@@ -168,6 +170,26 @@ def update_zip_code():
     all_people.to_csv(all_people_csv, index=False)
 
 
+def read_all_people_file():
+    dtype_dict = {
+        'First Name': str,
+        'Last Name': str,
+        'Physical Address': str,
+        'Email Address': str,
+        'Cell Phone Number': str,
+        'Zip Code': str
+    }
+    df = pd.read_csv(all_people_csv, dtype=dtype_dict)
+    return df
+
+    # Display the result
+    print(df.dtypes)
+
+# clean zip codes
+# df['Zip Code'] = df['Zip Code'].str.zfill(5).replace('00000', '')
+# clean phone numbers
+# df['Cell Phone Number'] = df['Cell Phone Number'].str.replace(r'[-() ]', '', regex=True)
+
 def main():
     """ """
     # convert_files()
@@ -176,8 +198,8 @@ def main():
     # merge_files()
     # generate_output_file()
     # find_suspected_duplicates()
-    update_org_count_per_person()
-    # update_zip_code()
+    # update_org_count_per_person()
+    update_zip_code()
 
 
 if __name__ == "__main__":
