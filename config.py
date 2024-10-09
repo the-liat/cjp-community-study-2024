@@ -14,6 +14,7 @@ all_people_json = target_dir + '/all_people.json'
 all_people_csv = target_dir + '/all_people.csv'
 duplicates_json = target_dir + '/duplicates.json'
 merge_candidates_json = target_dir + '/merge_candidates.json'
+final_merged_people_csv = target_dir + '/final_merged_people.csv'
 
 dtype_dict = {
     'First Name': str,
