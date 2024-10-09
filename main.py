@@ -201,7 +201,10 @@ def read_all_people_file():
 
 
 def merge_candidates():
-    """ """
+    def add_person_to_unique_people(person):
+        """"""
+        # unique_people.loc[len(unique_people)] = person
+
     def read_field(name):
         return row[name].strip().lower().replace('nan', '')
 
@@ -210,7 +213,7 @@ def merge_candidates():
              people_with_full_name_and_cell_phone=defaultdict(list))
 
     all_people = read_all_people_file()
-    # output = pd.DataFrame(columns=all_people.columns)
+    unique_people = pd.DataFrame(columns=all_people.columns)
 
     total_people = len(all_people)
     for i, row in all_people.iterrows():
@@ -226,24 +229,29 @@ def merge_candidates():
 
         # If a person has a full name and email just add them to the output
         if first_name and last_name and email:
-            # output.loc[len(output)] = row
+            add_person_to_unique_people(row)
             continue
-        # If the first name and email are not empty, add the person to the dictionary
+        # If the email are not empty, add the person to the dictionary
         if email:
-            d['people_without_full_name_and_email'][f'{first_name}, {email}'].append(list(row))
+            d['people_without_full_name_and_email'][
+                f'{first_name}, {last_name},{email}'].append(list(row))
 
         # If the full name and address are not empty, add the person to the dictionary
         if first_name and last_name and address:
             d['people_with_full_name_and_address'][
                 f'{first_name}, {last_name}, {address}'].append(list(row))
-            # If the full name and cell phone are not empty, add the person to the dictionary
+        # If the full name and cell phone are not empty, add the person to the dictionary
         elif first_name and last_name and cell_phone:
             d['people_with_full_name_and_cell_phone'][
                 f'{first_name}, {last_name}, {cell_phone}'].append(list(row))
 
     # Remove people that appear only once in any dictionary
     for k, v in d.items():
+        people = [vv[0] for vv in v.values() if len(vv) ==1]
+        for person in people:
+            add_person_to_unique_people(person)
         d[k] = {kk: vv for kk, vv in v.items() if len(vv) > 1}
+
 
     # Print stats
     # print('People with duplicates (already in output df:', len(output))
@@ -255,6 +263,7 @@ def merge_candidates():
 
     # Save the dictionaries to a JSON file
     json.dump(d, open(merge_candidates_json, 'w'), indent=2)
+
 
 
 def main():
@@ -269,7 +278,7 @@ def main():
     # update_zip_code()
     # clean_phone_numbers()
     # clean_nans([
-    #    'First Name', 'Last Name', 'Physical Address', 'Email Address'])
+    #   'First Name', 'Last Name', 'Physical Address', 'Email Address'])
     merge_candidates()
 
 
