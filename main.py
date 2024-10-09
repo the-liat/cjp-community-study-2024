@@ -210,7 +210,8 @@ def merge_candidates():
 
     d = dict(people_without_full_name_and_email=defaultdict(list),
              people_with_full_name_and_address=defaultdict(list),
-             people_with_full_name_and_cell_phone=defaultdict(list))
+             people_with_full_name_and_cell_phone=defaultdict(list),
+             people_with_full_name_only=defaultdict(list))
 
     all_people = read_all_people_file()
     unique_people = pd.DataFrame(columns=all_people.columns)
@@ -227,23 +228,31 @@ def merge_candidates():
         address = read_field('Physical Address')
         cell_phone = read_field('Cell Phone Number')
 
+        has_full_name = first_name and last_name
+
         # If a person has a full name and email just add them to the output
-        if first_name and last_name and email:
+        if has_full_name and email:
             add_person_to_unique_people(row)
             continue
         # If the email are not empty, add the person to the dictionary
+
         if email:
             d['people_without_full_name_and_email'][
                 f'{first_name}, {last_name},{email}'].append(list(row))
+        if not has_full_name:
+            continue
 
         # If the full name and address are not empty, add the person to the dictionary
-        if first_name and last_name and address:
+        elif first_name and last_name and address:
             d['people_with_full_name_and_address'][
                 f'{first_name}, {last_name}, {address}'].append(list(row))
         # If the full name and cell phone are not empty, add the person to the dictionary
         elif first_name and last_name and cell_phone:
             d['people_with_full_name_and_cell_phone'][
                 f'{first_name}, {last_name}, {cell_phone}'].append(list(row))
+        elif:
+            d['people_with_full_name_only'][
+                f'{first_name}, {last_name}'].append(list(row))
 
     # Remove people that appear only once in any dictionary
     for k, v in d.items():
