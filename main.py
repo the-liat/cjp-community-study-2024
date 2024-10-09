@@ -200,7 +200,44 @@ def read_all_people_file():
     return df
 
 
-def merge_candidates():
+def merge_candidates(org_names):
+    def merge_people_with_same_name_and_email(d: dict):
+        """ """
+        people = []
+        for v in d.values():
+            p = {}
+            candidates = list(v.values())
+            first = candidates[0]
+            # Populate the person's details
+            p['First Name'] = first[0]
+            p['Last Name'] = first[1]
+            p['Physical Address'] = [c[2] for c in candidates if c[2]][0]
+            p['Zip Code'] = [c[3] for c in candidates if c[3]][0]
+            p['Email Address'] = first[0][4]
+            p['Cell Phone Number'] = [c[5] for c in candidates if c[5]][0]
+            # Populate orgs
+            total = 0
+            for i in range(6, len(first)-1):
+                member = max([c[i] for c in candidates])
+                total += member
+                p[org_names[i]] = member
+
+            p['Total Orgs'] = total
+
+
+    def merge_people_with_same_name_and_address():
+        """ """
+        pass
+
+    def merge_people_with_same_name_and_cell_phone():
+        """ """
+        pass
+
+    def merge_people_with_same_name_only():
+        """ """
+        pass
+
+
     def add_person_to_unique_people(person):
         """"""
         # unique_people.loc[len(unique_people)] = person
@@ -209,9 +246,12 @@ def merge_candidates():
         return row[name].strip().lower().replace('nan', '')
 
     d = dict(people_without_full_name_and_email=defaultdict(list),
+             people_with_full_name_and_email=defaultdict(list),
              people_with_full_name_and_address=defaultdict(list),
              people_with_full_name_and_cell_phone=defaultdict(list),
              people_with_full_name_only=defaultdict(list))
+
+    others = [] # people that don't fit any other category (can't be merged)
 
     all_people = read_all_people_file()
     unique_people = pd.DataFrame(columns=all_people.columns)
@@ -229,50 +269,41 @@ def merge_candidates():
         cell_phone = read_field('Cell Phone Number')
 
         has_full_name = first_name and last_name
-
-        # If a person has a full name and email just add them to the output
         if has_full_name and email:
-            add_person_to_unique_people(row)
-            continue
-        # If the email are not empty, add the person to the dictionary
-
-        if email:
+            d['people_with_full_name_and_email'][
+                f'{first_name}, {last_name},{email}'].append(list(row))
+        elif email:
             d['people_without_full_name_and_email'][
                 f'{first_name}, {last_name},{email}'].append(list(row))
-        if not has_full_name:
-            continue
-
-        # If the full name and address are not empty, add the person to the dictionary
-        elif first_name and last_name and address:
+        elif has_full_name and address:
             d['people_with_full_name_and_address'][
                 f'{first_name}, {last_name}, {address}'].append(list(row))
-        # If the full name and cell phone are not empty, add the person to the dictionary
-        elif first_name and last_name and cell_phone:
+        elif has_full_name and cell_phone:
             d['people_with_full_name_and_cell_phone'][
                 f'{first_name}, {last_name}, {cell_phone}'].append(list(row))
-        elif:
+        elif not (address or cell_phone):
             d['people_with_full_name_only'][
                 f'{first_name}, {last_name}'].append(list(row))
+        else:
+            others.append(list(row))
 
-    # Remove people that appear only once in any dictionary
     for k, v in d.items():
-        people = [vv[0] for vv in v.values() if len(vv) ==1]
+        people = [vv[0] for vv in v.values() if len(vv) == 1]
         for person in people:
             add_person_to_unique_people(person)
         d[k] = {kk: vv for kk, vv in v.items() if len(vv) > 1}
 
-
     # Print stats
-    # print('People with duplicates (already in output df:', len(output))
-    print('People without full name and email:',
-          len(d['people_without_full_name_and_email']))
+    print('People with full name and email:', len(d['people_with_full_name_and_email']))
+    print('People with email, but without full name:', len(d['people_without_full_name_and_email']))
     print('People with full name and address:', len(d['people_with_full_name_and_address']))
-    print('People with full name and cell phone:',
-          len(d['people_with_full_name_and_cell_phone']))
+    print('People with full name and cell phone:', len(d['people_with_full_name_and_cell_phone']))
+    print('People with full name only:', len(d['people_with_full_name_only']))
 
+    # Remove the people with full name and email from the dictionary because there are too many
+    del d['people_with_full_name_and_email']
     # Save the dictionaries to a JSON file
     json.dump(d, open(merge_candidates_json, 'w'), indent=2)
-
 
 
 def main():
