@@ -203,7 +203,7 @@ def read_all_people_file():
 
 def merge_candidates():
     def merge_people_with_same_name_and_email(d: dict, col_names):
-        people = []
+        people1 = []
         for candidates in d.values():
             p = OrderedDict()
             first = candidates[0]
@@ -211,11 +211,11 @@ def merge_candidates():
             addresses = [c[2] for c in candidates if c[2]]
             zipcodes = [c[3] for c in candidates if c[3]]
             phones = [c[5] for c in candidates if c[5]]
-            address = addresses[0] if addresses else ''
+            address1 = addresses[0] if addresses else ''
             # Populate the person's details
             p['First Name'] = first[0]
             p['Last Name'] = first[1]
-            p['Physical Address'] = f'''"{address}"'''
+            p['Physical Address'] = f'''"{address1}"'''
             p['Zip Code'] = zipcodes[0] if zipcodes else ''
             p['Email Address'] = first[4]
             p['Cell Phone Number'] = phones[0] if phones else ''
@@ -227,11 +227,11 @@ def merge_candidates():
                 p[col_names[i]] = member
 
             p['Total Orgs'] = total
-            people.append(list(p.values()))
-        return people
+            people1.append(list(p.values()))
+        return people1
 
     def merge_people_with_same_email_and_no_name(d: dict, col_names):
-        people = []
+        people2 = []
         for candidates in d.values():
             p = OrderedDict()
             first = candidates[0]
@@ -239,11 +239,11 @@ def merge_candidates():
             addresses = [c[2] for c in candidates if c[2]]
             zipcodes = [c[3] for c in candidates if c[3]]
             phones = [c[5] for c in candidates if c[5]]
-            address = addresses[0] if addresses else ''
+            address2 = addresses[0] if addresses else ''
             # Populate the person's details
             p['First Name'] = first[0]
             p['Last Name'] = first[1]
-            p['Physical Address'] = f'''"{address}"'''
+            p['Physical Address'] = f'''"{address2}"'''
             p['Zip Code'] = zipcodes[0] if zipcodes else ''
             p['Email Address'] = first[4]
             p['Cell Phone Number'] = phones[0] if phones else ''
@@ -255,11 +255,11 @@ def merge_candidates():
                 p[col_names[i]] = member
 
             p['Total Orgs'] = total
-            people.append(list(p.values()))
-        return people
+            people2.append(list(p.values()))
+        return people2
 
     def merge_people_with_same_name_and_address(d: dict, col_names):
-        people = []
+        people3 = []
         for candidates in d.values():
             p = OrderedDict()
             first = candidates[0]
@@ -282,11 +282,11 @@ def merge_candidates():
                 p[col_names[i]] = member
 
             p['Total Orgs'] = total
-            people.append(list(p.values()))
-        return people
+            people3.append(list(p.values()))
+        return people3
 
     def merge_people_with_same_name_and_cell_phone(d: dict, col_names):
-        people = []
+        people4 = []
         for candidates in d.values():
             p = OrderedDict()
             first = candidates[0]
@@ -294,11 +294,11 @@ def merge_candidates():
             addresses = [c[2] for c in candidates if c[2]]
             zipcodes = [c[3] for c in candidates if c[3]]
             emails = [c[4] for c in candidates if c[4]]
-            address = addresses[0] if addresses else ''
+            address4 = addresses[0] if addresses else ''
             # Populate the person's details
             p['First Name'] = first[0]
             p['Last Name'] = first[1]
-            p['Physical Address'] = f'''"{address}"'''
+            p['Physical Address'] = f'''"{address4}"'''
             p['Zip Code'] = zipcodes[0] if zipcodes else ''
             p['Email Address'] = emails[0] if emails else ''
             p['Cell Phone Number'] = first[5]
@@ -310,11 +310,11 @@ def merge_candidates():
                 p[col_names[i]] = member
 
             p['Total Orgs'] = total
-            people.append(list(p.values()))
-        return people
+            people4.append(list(p.values()))
+        return people4
 
     def merge_people_with_same_name_only(d: dict, col_names):
-        people = []
+        people5 = []
         for candidates in d.values():
             p = OrderedDict()
             first = candidates[0]
@@ -323,11 +323,11 @@ def merge_candidates():
             zipcodes = [c[3] for c in candidates if c[3]]
             phones = [c[5] for c in candidates if c[5]]
             emails = [c[4] for c in candidates if c[4]]
-            address = addresses[0] if addresses else ''
+            address5 = addresses[0] if addresses else ''
             # Populate the person's details
             p['First Name'] = first[0]
             p['Last Name'] = first[1]
-            p['Physical Address'] = f'''"{address}"'''
+            p['Physical Address'] = f'"{address5}"'
             p['Zip Code'] = zipcodes[0] if zipcodes else ''
             p['Email Address'] = emails[0] if emails else ''
             p['Cell Phone Number'] = phones[0] if phones else ''
@@ -339,12 +339,8 @@ def merge_candidates():
                 p[col_names[i]] = member
 
             p['Total Orgs'] = total
-            people.append(list(p.values()))
-        return people
-
-    def add_person_to_unique_people(person):
-        """"""
-        # unique_people.loc[len(unique_people)] = person
+            people5.append(list(p.values()))
+        return people5
 
     def read_field(name):
         return row[name].strip().lower().replace('nan', '')
@@ -359,7 +355,6 @@ def merge_candidates():
 
     all_people = read_all_people_file()
     col_names = list(all_people.columns)
-    unique_people = pd.DataFrame(columns=all_people.columns)
 
     total_people = len(all_people)
     for i, row in all_people.iterrows():
@@ -376,10 +371,10 @@ def merge_candidates():
         has_full_name = first_name and last_name
         if has_full_name and email:
             d['people_with_full_name_and_email'][
-                f'{first_name}, {last_name},{email}'].append(list(row))
+                f'{first_name}, {last_name}, {email}'].append(list(row))
         elif email:
             d['people_without_full_name_and_email'][
-                f'{first_name}, {last_name},{email}'].append(list(row))
+                f'{first_name}, {last_name}, {email}'].append(list(row))
         elif has_full_name and address:
             d['people_with_full_name_and_address'][
                 f'{first_name}, {last_name}, {address}'].append(list(row))
@@ -391,12 +386,6 @@ def merge_candidates():
                 f'{first_name}, {last_name}'].append(list(row))
         else:
             others.append(list(row))
-
-    for k, v in d.items():
-        people = [vv[0] for vv in v.values() if len(vv) == 1]
-        for person in people:
-            add_person_to_unique_people(person)
-        d[k] = {kk: vv for kk, vv in v.items() if len(vv) > 1}
 
     # Print stats
     print('People with full name and email:', len(d['people_with_full_name_and_email']))
@@ -414,7 +403,7 @@ def merge_candidates():
     people += merge_people_with_same_name_and_cell_phone(d['people_with_full_name_and_cell_phone'],
                                                          col_names)
     people += merge_people_with_same_name_only(d['people_with_full_name_only'], col_names)
-
+    people = [[x if x != 'nan' else '' for x in p] for p in people]
 
     # Creating the CSV file
     with open(final_merged_people_csv, mode='w', newline='', encoding='utf-8') as file:
@@ -426,6 +415,7 @@ def merge_candidates():
         # Write the data rows
         writer.writerows(people)
         print("CSV file created successfully.")
+
 
 def main():
     """ """
