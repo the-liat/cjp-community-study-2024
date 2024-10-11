@@ -1,4 +1,4 @@
-# CJP Contact List Analysis 
+# CJP Contact List Analysis
 
 * Categorize oraganizations into: synagogues, schools, human service agencies, JCCs, youth 
   serving organizations, single group advocacy organizations,cultural organizations.
