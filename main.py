@@ -27,13 +27,13 @@ def convert_files():
     os.makedirs(target_dir, exist_ok=True)
     # Read file list from target directory (*.xlsx)
     files = glob(f'{input_dir}/*.xlsx')
-    for f in files[1:]:
-        sheets = pd.read_excel(f, sheet_name=None)  # Returns a dictionary of DataFrames
-        df = list(sheets.values())[0]  # Save each sheet as a CSV
+    for f in files:
         base_name = os.path.basename(f)
         csv_file = f'{input_dir}/output/{base_name.replace(".xlsx", ".csv")}'
         if os.path.isfile(csv_file):
             continue
+        sheets = pd.read_excel(f, sheet_name=None)  # Returns a dictionary of DataFrames
+        df = list(sheets.values())[0]  # Save each sheet as a CSV
         print('converting:', csv_file)
         df.to_csv(csv_file, index=False)
 
@@ -434,7 +434,7 @@ def main():
     # clean_phone_numbers()
     # clean_nans([
     #   'First Name', 'Last Name', 'Physical Address', 'Email Address'])
-    #merge_candidates()
+    # merge_candidates()
 
 
 if __name__ == "__main__":
