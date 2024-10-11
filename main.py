@@ -6,6 +6,7 @@ import time
 from collections import defaultdict, OrderedDict
 from glob import glob
 from pprint import pprint as pp
+import numpy as np
 import pandas as pd
 import usaddress
 from config import (
@@ -79,18 +80,21 @@ def generate_output_file():
     all_people = json.load(open(all_people_json))
     valid_orgs = open(org_names_file).read().split('\n')
     cols = col_list + valid_orgs + ['Total Orgs']
-    df = pd.DataFrame(columns=cols)
+
+    # Accumulate rows in a list to avoid repeated appending
+    rows = []
     total_people = len(all_people)
+
     for i, (k, v) in enumerate(all_people.items(), start=1):
         if i % 10000 == 0:
             curr_time = datetime.now().strftime('%H:%M')
             print(f"[{curr_time}] {i:,} / {total_people:,}, {i * 100 / total_people:.2f}% complete")
+
         row = k.split(key_separator) + [1 if org in v else 0 for org in valid_orgs] + [len(v)]
-        try:
-            df.loc[len(df)] = row
-        except Exception as e:
-            print(row)
-            raise
+        rows.append(row)
+
+    # Convert the accumulated rows to a DataFrame at once
+    df = pd.DataFrame(rows, columns=cols)
 
     # Clean up the phone numbers and emails
     phones = df['Cell Phone Number'].str.replace(r'[-() ]', '', regex=True).str.replace('nan', '')
@@ -423,14 +427,14 @@ def main():
     # generate_org_list()
     # list_org_columns()
     # merge_files()
-    # generate_output_file()
+    generate_output_file()
     # find_suspected_duplicates()
     # update_org_count_per_person()
     # update_zip_code()
     # clean_phone_numbers()
     # clean_nans([
     #   'First Name', 'Last Name', 'Physical Address', 'Email Address'])
-    merge_candidates()
+    #merge_candidates()
 
 
 if __name__ == "__main__":
