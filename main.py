@@ -9,6 +9,7 @@ from pprint import pprint as pp
 import numpy as np
 import pandas as pd
 import usaddress
+from pyxdameraulevenshtein import damerau_levenshtein_distance
 from config import (
     col_list,
     input_dir,
@@ -73,6 +74,23 @@ def merge_files():
     json.dump(all_people, open(all_people_json, 'w'))
 
 
+# def standardize_names(rows):
+#     """find people with similar names and rename to first person's name
+#     """
+#     print('standardize_names() - start')
+#     for i, person in enumerate(rows):
+#         if i % 100 == 0:
+#             print(f'[{datetime.now().strftime("%H:%M")} {i * 100} / {len(rows)} % complete')
+#         name = person[0] + ' ' + person[1]
+#         for j, p in enumerate(rows[i+1:]):
+#             name2 = p[0] + ' ' + p[1]
+#             if name == name2:
+#                 continue
+#             if damerau_levenshtein_distance(name, name2) < 3:
+#                 p[0] = person[0]
+#                 p[1] = person[1]
+
+
 def generate_output_file():
     """ Create a DataFrame from the dictionary where the columns the details of a person + all org
         names and the values are 0 or 1 depending on whether the person is on that org list
@@ -93,11 +111,12 @@ def generate_output_file():
         row = k.split(key_separator) + [1 if org in v else 0 for org in valid_orgs] + [len(v)]
         rows.append(row)
 
+    #rows2 = standardize_names(rows)
     # Convert the accumulated rows to a DataFrame at once
     df = pd.DataFrame(rows, columns=cols)
 
     # Clean up the phone numbers and emails
-    phones = df['Cell Phone Number'].str.replace(r'[-() ]', '', regex=True).str.replace('nan', '')
+    phones = df['Cell Phone Number'].str.replace(r'[-() ]+', '', regex=True).str.replace('nan', '')
     emails = df['Email Address'].str.replace('nan', '')
     df['Cell Phone Number'] = phones
     df['Email Address'] = emails
@@ -117,6 +136,11 @@ def list_org_columns():
         print(org, ':', list(df.columns))
         print('-' * 10)
 
+def find_matching_name(all_names, name):
+    for n in all_names:
+        if damerau_levenshtein_distance(n, name) < 3:
+            return n
+    return name
 
 def find_suspected_duplicates():
     all_people = [p.split(key_separator) for p in json.load(open(all_people_json)).keys()]
@@ -130,12 +154,15 @@ def find_suspected_duplicates():
     all_by_phone = defaultdict(list)
 
     for p in all_people:
-        all_by_name[f'{p[0]} {p[1]}'].append(p)
+        name = f'{p[0]} {p[1]}'
+        name = find_matching_name(all_by_name.keys(), name)
+        all_by_name[name].append(p)
         all_by_email[p[3]].append(p)
         all_by_phone[p[4]].append(p)
 
     invalid_phone_values = ['', 'none', 'y', 'no call', 'null, null', 'x', 'nocall']
     invalid_email_values = ['', 'none', 'nan', 'n/a']
+
 
     all_by_name = {k: v for k, v in all_by_name.items() if len(v) > 1}
     all_by_email = {k: v for k, v in all_by_email.items() if
@@ -182,12 +209,87 @@ def update_zip_code():
     all_people.to_csv(all_people_csv, index=False)
 
 
+def clean_addresses():
+    def clean_address(address):
+        def abbrev_state(state_name):
+            d = {
+                'Alabama': 'AL',
+                'Alaska': 'AK',
+                'Arizona': 'AZ',
+                'Arkansas': 'AR',
+                'California': 'CA',
+                'Colorado': 'CO',
+                'Connecticut': 'CT',
+                'Delaware': 'DE',
+                'District of Columbia': 'DC',
+                'Florida': 'FL',
+                'Georgia': 'GA',
+                'Hawaii': 'HI',
+                'Idaho': 'ID',
+                'Illinois': 'IL',
+                'Indiana': 'IN',
+                'Iowa': 'IA',
+                'Kansas': 'KS',
+                'Kentucky': 'KY',
+                'Louisiana': 'LA',
+                'Maine': 'ME',
+                'Maryland': 'MD',
+                'Massachusetts': 'MA',
+                'Michigan': 'MI',
+                'Minnesota': 'MN',
+                'Mississippi': 'MS',
+                'Missouri': 'MO',
+                'Montana': 'MT',
+                'Nebraska': 'NE',
+                'Nevada': 'NV',
+                'New Hampshire': 'NH',
+                'New Jersey': 'NJ',
+                'New Mexico': 'NM',
+                'New York': 'NY',
+                'North Carolina': 'NC',
+                'North Dakota': 'ND',
+                'Ohio': 'OH',
+                'Oklahoma': 'OK',
+                'Oregon': 'OR',
+                'Pennsylvania': 'PA',
+                'Rhode Island': 'RI',
+                'South Carolina': 'SC',
+                'South Dakota': 'SD',
+                'Tennessee': 'TN',
+                'Texas': 'TX',
+                'Utah': 'UT',
+                'Vermont': 'VT',
+                'Virginia': 'VA',
+                'Washington': 'WA',
+                'West Virginia': 'WV',
+                'Wisconsin': 'WI',
+                'Wyoming': 'WY'
+            }
+
+            return d.get(state_name.title(), 'MA')
+
+        try:
+            parsed_address = usaddress.tag(str(address))
+            c = parsed_address[0]
+            address = ' '.join((c.get('AddressNumber', ''), c.get('StreetName', ''),
+            c.get('StreetNamePostType'),
+                               c.get('PlaceName', ''), abbrev_state(c.get('StateName')))).lower()
+        except Exception:
+            return address.lower()
+
+    all_people = read_all_people_file()
+    all_people['Physical Address'].apply(clean_address).astype(str)
+
+    all_people.to_csv(all_people_csv, index=False)
+
+
 def clean_phone_numbers():
     all_people = read_all_people_file()
     phone_numbers = (all_people['Cell Phone Number']
                      .astype(str)
                      .str.replace(r'[-() ]', '', regex=True)
-                     .str.replace('nan', ''))
+                     .str.replace('nan', '')
+                     .str.replace('+', ''))
     all_people['Cell Phone Number'] = phone_numbers
     all_people.to_csv(all_people_csv, index=False)
 
@@ -427,14 +529,15 @@ def main():
     # generate_org_list()
     # list_org_columns()
     # merge_files()
-    generate_output_file()
+    #generate_output_file()
     # find_suspected_duplicates()
-    # update_org_count_per_person()
-    # update_zip_code()
-    # clean_phone_numbers()
-    # clean_nans([
-    #   'First Name', 'Last Name', 'Physical Address', 'Email Address'])
-    # merge_candidates()
+    #update_org_count_per_person()
+    #update_zip_code()
+    #clean_addresses()
+    #clean_phone_numbers()
+    #clean_nans([
+    #'First Name', 'Last Name', 'Physical Address', 'Email Address'])
+    #merge_candidates()
 
 
 if __name__ == "__main__":
